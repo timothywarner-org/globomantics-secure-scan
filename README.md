@@ -24,25 +24,116 @@ These queries are organized in a suite (`queries/javascript/security-suite.qls`)
 
 - [CodeQL CLI](https://github.com/github/codeql-cli-binaries/releases)
 - A JavaScript project to analyze
+- GitHub account with access to GitHub Container Registry (GHCR)
 
-### Running the Queries
+## 📚 Working with GitHub Container Registry (GHCR)
 
-To run the entire query suite:
+This query pack is published to GitHub Container Registry, allowing organization-wide access to standardized security queries.
+
+### Authentication with GHCR
+
+Before using this query pack from GHCR, authenticate with your GitHub account:
 
 ```bash
-# Create a database
+# Login to GitHub Container Registry
+echo $GITHUB_TOKEN | codeql github login --token-stdin
+
+# Or use a Personal Access Token (PAT) with package read permissions
+echo $PAT | codeql github login --token-stdin
+```
+
+### Listing Available Query Packs
+
+You can view available query packs in the registry:
+
+```bash
+# List all query packs in the organization
+codeql pack list --registry=https://ghcr.io timothywarner-org/*
+```
+
+### Using the Query Pack from GHCR
+
+Once authenticated, you can use the query pack directly from GHCR:
+
+```bash
+# Create a CodeQL database for your project
 codeql database create js-db --language=javascript --source-root=/path/to/source
 
-# Run the security suite from GitHub Container Registry
+# Run the entire security suite from GHCR
 codeql database analyze js-db timothywarner-org/globomantics-security-queries:queries/javascript/security-suite.qls --format=sarif-latest --output=suite-results.sarif
-```
 
-To run an individual query:
-
-```bash
-# Run a specific query from GitHub Container Registry
+# Run a specific query from GHCR
 codeql database analyze js-db timothywarner-org/globomantics-security-queries:queries/javascript/detect-eval-use.ql --format=sarif-latest --output=eval-results.sarif
 ```
+
+### Using a Specific Version
+
+You can specify a particular version of the query pack:
+
+```bash
+# Run with a specific version
+codeql database analyze js-db timothywarner-org/globomantics-security-queries@1.0.0:queries/javascript/security-suite.qls --format=sarif-latest --output=suite-results.sarif
+```
+
+## 🧪 Developing Custom Query Packs
+
+If you want to create your own custom query pack like this one:
+
+### 1. Set up your repository structure
+
+```
+your-query-pack/
+├── .github/
+│   └── workflows/
+│       └── publish-query-pack.yml
+├── queries/
+│   └── javascript/
+│       ├── your-query1.ql
+│       ├── your-query2.ql
+│       └── security-suite.qls
+├── codeql-pack.yml
+└── qlpack.yml
+```
+
+### 2. Configure pack metadata
+
+Create `codeql-pack.yml`:
+
+```yaml
+name: your-org/your-pack-name
+version: 1.0.0
+description: "Description of your query pack"
+license: MIT
+defaultSuite: queries/javascript/security-suite.qls
+```
+
+Create `qlpack.yml`:
+
+```yaml
+name: your-org/your-pack-name
+version: 1.0.0
+dependencies:
+  codeql/javascript-all: "*"
+  codeql/javascript-queries: "*"
+library: false
+```
+
+### 3. Create, test, and publish your pack
+
+```bash
+# Create the pack
+codeql pack create
+
+# Test a query locally
+codeql database analyze path/to/database queries/javascript/your-query.ql
+
+# Publish to GHCR (requires authentication)
+codeql pack publish --registry=https://ghcr.io your-org/your-pack-name
+```
+
+### 4. Automate publishing with GitHub Actions
+
+Set up a workflow similar to the one in this repository to automatically publish updates to your query pack.
 
 ## 🔒 Integration with GitHub Advanced Security
 
