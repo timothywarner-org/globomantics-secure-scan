@@ -4,9 +4,8 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'queries/**'
-      - 'codeql-pack.yml'
-      - 'qlpack.yml'
+      - 'globomantics-secure-scan/**'
+      - '.github/workflows/publish-query-pack.yml'
   release:
     types: [ published ]
   workflow_dispatch:
@@ -40,32 +39,35 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.TIM_GITHUB_PAT }}
 
       - name: Install CodeQL pack dependencies
+        working-directory: ./globomantics-secure-scan
         run: |
           codeql pack install || {
-            echo "::error ::Failed to install CodeQL pack dependencies. Check that 'codeql/javascript-all' is spelled correctly and published.";
+            echo "::error ::Failed to install CodeQL pack dependencies. Check that dependencies are spelled correctly and published.";
             exit 1;
           }
 
       - name: Validate pack structure
         run: |
-          test -f codeql-pack.yml || { echo "::error ::Missing codeql-pack.yml"; exit 1; }
-          test -d queries || { echo "::error ::Missing queries directory"; exit 1; }
+          test -d globomantics-secure-scan || { echo "::error ::Missing globomantics-secure-scan directory"; exit 1; }
+          test -f globomantics-secure-scan/qlpack.yml || { echo "::error ::Missing qlpack.yml"; exit 1; }
+          test -d globomantics-secure-scan/queries || { echo "::error ::Missing queries directory"; exit 1; }
 
-      - name: Package and publish CodeQL pack
+      - name: Build and publish CodeQL pack
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TIM_GITHUB_PAT }}
+        working-directory: ./globomantics-secure-scan
         run: |
-          echo "Creating pack..."
-          codeql pack create || {
-            echo "::error ::Failed to create CodeQL pack.";
+          echo "Building pack..."
+          codeql pack build . || {
+            echo "::error ::Failed to build CodeQL pack.";
             exit 1;
           }
 
           echo "Publishing pack..."
-          codeql pack publish --registry=https://ghcr.io || {
+          codeql pack publish --registry=ghcr.io/timothywarner-org . || {
             echo "::error ::Failed to publish CodeQL pack.";
             exit 1;
           }
