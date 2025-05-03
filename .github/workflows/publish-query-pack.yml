@@ -22,21 +22,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download CodeQL CLI
+      - name: Download and setup CodeQL CLI
+        id: setup-codeql
         run: |
           CODEQL_VERSION="2.15.5"
-          curl -L -o codeql.zip "https://github.com/github/codeql-cli-binaries/releases/download/v${CODEQL_VERSION}/codeql-linux64.zip"
-          unzip codeql.zip
+          curl -sSL -o codeql.zip https://github.com/github/codeql-cli-binaries/releases/download/v${CODEQL_VERSION}/codeql-linux64.zip
+          unzip -q codeql.zip
           echo "$PWD/codeql" >> $GITHUB_PATH
+          echo "CODEQL_PATH=$PWD/codeql" >> $GITHUB_ENV
 
-      - name: Add CodeQL to PATH (make sure it sticks)
+      - name: Verify CodeQL CLI availability
         run: |
-          echo "$PWD/codeql" >> $GITHUB_PATH
-          export PATH="$PWD/codeql:$PATH"
-          which codeql
-          codeql --version
+          codeql --version || { echo "CodeQL CLI not found"; exit 1; }
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -44,11 +43,29 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install CodeQL pack dependencies
-        run: codeql pack install
+        run: |
+          codeql pack install || {
+            echo "::error ::Failed to install CodeQL pack dependencies. Check that 'codeql/javascript-all' is spelled correctly and published.";
+            exit 1;
+          }
 
-      - name: Create and publish CodeQL pack
+      - name: Validate pack structure
+        run: |
+          test -f codeql-pack.yml || { echo "::error ::Missing codeql-pack.yml"; exit 1; }
+          test -d queries || { echo "::error ::Missing queries directory"; exit 1; }
+
+      - name: Package and publish CodeQL pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          codeql pack create
-          codeql pack publish --registry=https://ghcr.io
+          echo "Creating pack..."
+          codeql pack create || {
+            echo "::error ::Failed to create CodeQL pack.";
+            exit 1;
+          }
+
+          echo "Publishing pack..."
+          codeql pack publish --registry=https://ghcr.io || {
+            echo "::error ::Failed to publish CodeQL pack.";
+            exit 1;
+          }
