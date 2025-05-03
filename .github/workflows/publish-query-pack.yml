@@ -29,7 +29,6 @@ jobs:
           unzip codeql.zip
           echo "$PWD/codeql" >> $GITHUB_PATH
           export PATH="$PWD/codeql:$PATH"
-          echo "PATH is now: $PATH"
           which codeql
           codeql --version
 
@@ -43,8 +42,8 @@ jobs:
       - name: Package and publish CodeQL pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PATH: ${{ github.workspace }}/codeql:${{ env.PATH }}
         run: |
+          export PATH="$PWD/codeql:$PATH"
           PACKAGE_NAME=$(grep "name:" codeql-pack.yml | cut -d' ' -f2)
           PACKAGE_VERSION=$(grep "version:" codeql-pack.yml | cut -d' ' -f2)
           echo "Packaging $PACKAGE_NAME@$PACKAGE_VERSION"
