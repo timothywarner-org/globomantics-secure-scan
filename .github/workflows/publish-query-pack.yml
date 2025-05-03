@@ -28,6 +28,10 @@ jobs:
           curl -L -o codeql.zip "https://github.com/github/codeql-cli-binaries/releases/download/v${CODEQL_VERSION}/codeql-linux64.zip"
           unzip codeql.zip
           echo "$PWD/codeql" >> $GITHUB_PATH
+          export PATH="$PWD/codeql:$PATH"
+          echo "PATH is now: $PATH"
+          which codeql
+          codeql --version
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
@@ -39,6 +43,7 @@ jobs:
       - name: Package and publish CodeQL pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PATH: ${{ github.workspace }}/codeql:${{ env.PATH }}
         run: |
           PACKAGE_NAME=$(grep "name:" codeql-pack.yml | cut -d' ' -f2)
           PACKAGE_VERSION=$(grep "version:" codeql-pack.yml | cut -d' ' -f2)
