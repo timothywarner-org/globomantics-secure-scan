@@ -6,7 +6,7 @@ PACK_DIR="globomantics-secure-scan"
 GHCR_ORG="timothywarner-org"
 GHCR_REGISTRY="ghcr.io/${GHCR_ORG}"
 CODEQL_CLI="codeql" # Assumes codeql is in your PATH
-GITHUB_PAT=""
+# GITHUB_PAT=""
 
 # --- Auth to GHCR ---
 echo "${GITHUB_PAT}" | gh auth login --with-token
