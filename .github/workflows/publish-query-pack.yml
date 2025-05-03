@@ -1,0 +1,54 @@
+name: Publish CodeQL Query Pack
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types:
+      - published
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+      
+      - name: Package and publish
+        run: |
+          PACKAGE_NAME="timothywarner-org/globomantics-security-queries"
+          PACKAGE_VERSION=$(grep "version:" codeql-pack.yml | cut -d' ' -f2)
+          
+          # Package the query pack
+          codeql pack create
+          
+          # Tag with version if this is a release
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            # Extract version from the release tag
+            RELEASE_VERSION="${{ github.event.release.tag_name }}"
+            
+            # If tag starts with 'v', remove it
+            if [[ "$RELEASE_VERSION" == v* ]]; then
+              RELEASE_VERSION="${RELEASE_VERSION:1}"
+            fi
+            
+            # Publish with version tag
+            codeql pack publish --registry=https://ghcr.io $PACKAGE_NAME@$RELEASE_VERSION
+          else
+            # Publish with latest tag for main branch pushes
+            codeql pack publish --registry=https://ghcr.io $PACKAGE_NAME
+          fi 

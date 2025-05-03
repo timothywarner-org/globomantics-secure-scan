@@ -2,19 +2,23 @@
 
 A comprehensive CodeQL query pack for identifying security vulnerabilities in JavaScript applications. This custom query pack can be used with GitHub Advanced Security (GHAS) or with the CodeQL CLI.
 
-## Contents
+## 🔍 Overview
+
+This repository contains custom CodeQL queries designed to help identify security vulnerabilities in JavaScript code. It's designed as a teaching tool for GitHub Enterprise Cloud and CodeQL education.
+
+## 📦 Query Pack Contents
 
 This query pack includes three custom security queries for JavaScript:
 
-- **Detect Eval Use** (`queries/javascript/detect-eval-use.ql`): Identifies potentially dangerous uses of `eval()`, `Function()` constructor, and similar functions that can lead to code injection.
+- **Detect Eval Use** (`queries/javascript/detect-eval-use.ql`): Identifies potentially dangerous uses of `eval()`, `Function()` constructor, and similar functions that can lead to code injection vulnerabilities (CWE-95).
 
-- **HTTP Header Injection** (`queries/javascript/http-header-injection.ql`): Detects when user-controlled data flows into HTTP headers without proper sanitization.
+- **HTTP Header Injection** (`queries/javascript/http-header-injection.ql`): Detects when user-controlled data flows into HTTP headers without proper sanitization, which can lead to header injection attacks (CWE-113).
 
-- **Insecure Randomness** (`queries/javascript/insecure-randomness.ql`): Flags instances where `Math.random()` is used in security-sensitive contexts instead of cryptographically secure alternatives.
+- **Insecure Randomness** (`queries/javascript/insecure-randomness.ql`): Flags instances where `Math.random()` is used in security-sensitive contexts instead of cryptographically secure alternatives (CWE-338).
 
 These queries are organized in a suite (`queries/javascript/security-suite.qls`) for easy execution.
 
-## Usage
+## 🚀 Usage
 
 ### Prerequisites
 
@@ -29,32 +33,36 @@ To run the entire query suite:
 # Create a database
 codeql database create js-db --language=javascript --source-root=/path/to/source
 
-# Run the security suite
-codeql database analyze js-db globomantics/javascript-security-queries:security-suite.qls --format=sarif-latest --output=suite-results.sarif
+# Run the security suite from GitHub Container Registry
+codeql database analyze js-db timothywarner-org/globomantics-security-queries:queries/javascript/security-suite.qls --format=sarif-latest --output=suite-results.sarif
 ```
 
 To run an individual query:
 
 ```bash
-# Run a specific query
-codeql database analyze js-db globomantics/javascript-security-queries:queries/javascript/detect-eval-use.ql --format=sarif-latest --output=eval-results.sarif
+# Run a specific query from GitHub Container Registry
+codeql database analyze js-db timothywarner-org/globomantics-security-queries:queries/javascript/detect-eval-use.ql --format=sarif-latest --output=eval-results.sarif
 ```
 
-## Integration with GitHub Advanced Security
+## 🔒 Integration with GitHub Advanced Security
 
-This query pack can be used with GitHub Advanced Security by:
-
-1. Adding the query pack to your repository
-2. Configuring CodeQL to use the custom queries
-
-Example workflow configuration:
+This query pack can be used with GitHub Advanced Security by adding it to your CodeQL workflow:
 
 ```yaml
-- uses: github/codeql-action/analyze@v2
+- uses: github/codeql-action/init@v2
   with:
-    queries: ./path/to/globomantics-secure-scan
+    languages: javascript
+    queries: timothywarner-org/globomantics-security-queries@main
 ```
 
-## License
+## 🧪 Testing
+
+For testing these queries, check out our companion repository [globomantics-vulnerable-app](https://github.com/timothywarner-org/globomantics-vulnerable-app), which contains a deliberately vulnerable Express.js application designed to trigger these queries.
+
+## 📚 Educational Purpose
+
+This repository is part of the GitHub Enterprise Cloud training materials created by Tim Warner for Pluralsight. It demonstrates how organizations can create and govern custom CodeQL query packs that can be centrally published to GitHub Container Registry and consumed across multiple repositories.
+
+## 📄 License
 
 MIT 
