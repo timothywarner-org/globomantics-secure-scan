@@ -38,11 +38,13 @@ jobs:
           # Create the CodeQL pack path
           PACK_PATH="ghcr.io/${GITHUB_REPOSITORY_OWNER}/globomantics-javascript-security-queries:${VERSION}"
           
-          # Login with GitHub token
-          echo ${{ secrets.GITHUB_TOKEN }} | codeql pack login ghcr.io --token-stdin
+          # Login with GitHub token (use environment variable instead of echo)
+          codeql pack login ghcr.io --token="${{ secrets.GITHUB_TOKEN }}"
           
           # Publish the pack
           codeql pack publish --pack-path=. $PACK_PATH
           
           # Also tag as latest
-          codeql pack publish --pack-path=. ghcr.io/${GITHUB_REPOSITORY_OWNER}/globomantics-javascript-security-queries:latest 
+          codeql pack publish --pack-path=. ghcr.io/${GITHUB_REPOSITORY_OWNER}/globomantics-javascript-security-queries:latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
