@@ -2,119 +2,46 @@ name: Publish CodeQL Query Pack
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - 'queries/**'
       - 'codeql-pack.yml'
       - 'qlpack.yml'
   release:
-    types:
-      - published
+    types: [ published ]
   workflow_dispatch:
-    inputs:
-      version_tag:
-        description: 'Version tag to publish (leave empty to use latest)'
-        required: false
 
 jobs:
   publish:
-    name: Package and Publish
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history for proper versioning
 
-      # Cache CodeQL CLI binaries to speed up workflows
-      - name: Cache CodeQL
-        uses: actions/cache@v3
-        with:
-          path: ~/.codeql
-          key: ${{ runner.os }}-codeql-${{ hashFiles('codeql-pack.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-codeql-
+      - name: Download CodeQL CLI
+        run: |
+          CODEQL_VERSION="2.15.5"
+          curl -L -o codeql.zip "https://github.com/github/codeql-cli-binaries/releases/download/v${CODEQL_VERSION}/codeql-linux64.zip"
+          unzip codeql.zip
+          echo "$PWD/codeql" >> $GITHUB_PATH
 
-      - name: Setup CodeQL
-        uses: github/codeql-action/init@v2
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          languages: javascript
-          tools: latest
-      
-      - name: Set up GitHub CLI
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package and publish CodeQL pack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-      
-      - name: Package and publish
-        id: publish
-        run: |
-          PACKAGE_NAME="timothywarner-org/globomantics-security-queries"
-          
-          # Extract version from codeql-pack.yml
+          PACKAGE_NAME=$(grep "name:" codeql-pack.yml | cut -d' ' -f2)
           PACKAGE_VERSION=$(grep "version:" codeql-pack.yml | cut -d' ' -f2)
-          echo "Package version from config: $PACKAGE_VERSION"
-          
-          # Package the query pack
-          echo "::group::Creating CodeQL query pack"
+          echo "Packaging $PACKAGE_NAME@$PACKAGE_VERSION"
           codeql pack create
-          echo "::endgroup::"
-          
-          # Determine the version to publish
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            # Extract version from the release tag
-            RELEASE_VERSION="${{ github.event.release.tag_name }}"
-            
-            # If tag starts with 'v', remove it
-            if [[ "$RELEASE_VERSION" == v* ]]; then
-              RELEASE_VERSION="${RELEASE_VERSION:1}"
-            fi
-            
-            echo "Publishing with release version: $RELEASE_VERSION"
-            VERSION_TAG="@$RELEASE_VERSION"
-            echo "publish_version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
-          
-          elif [[ -n "${{ github.event.inputs.version_tag }}" ]]; then
-            # Use manually provided version tag
-            MANUAL_VERSION="${{ github.event.inputs.version_tag }}"
-            # If tag starts with 'v', remove it
-            if [[ "$MANUAL_VERSION" == v* ]]; then
-              MANUAL_VERSION="${MANUAL_VERSION:1}"
-            fi
-            
-            echo "Publishing with manual version: $MANUAL_VERSION"
-            VERSION_TAG="@$MANUAL_VERSION"
-            echo "publish_version=$MANUAL_VERSION" >> $GITHUB_OUTPUT
-          
-          else
-            # For main branch pushes, use the version from codeql-pack.yml
-            echo "Publishing with latest version: $PACKAGE_VERSION"
-            VERSION_TAG=""
-            echo "publish_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
-          fi
-          
-          # Publish the pack
-          echo "::group::Publishing CodeQL query pack to GHCR"
-          codeql pack publish --registry=https://ghcr.io $PACKAGE_NAME$VERSION_TAG
-          echo "::endgroup::"
-          
-          echo "Published package: $PACKAGE_NAME$VERSION_TAG"
-      
-      - name: Generate Summary
-        run: |
-          echo "## CodeQL Query Pack Published ✅" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **Package:** timothywarner-org/globomantics-security-queries" >> $GITHUB_STEP_SUMMARY
-          echo "📋 **Version:** ${{ steps.publish.outputs.publish_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "🔍 **Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "⏱️ **Published at:** $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "📚 To use this query pack in a CodeQL workflow:" >> $GITHUB_STEP_SUMMARY
-          echo '```yaml' >> $GITHUB_STEP_SUMMARY
-          echo '- uses: github/codeql-action/init@v2' >> $GITHUB_STEP_SUMMARY
-          echo '  with:' >> $GITHUB_STEP_SUMMARY
-          echo '    languages: javascript' >> $GITHUB_STEP_SUMMARY
-          echo '    queries: timothywarner-org/globomantics-security-queries@${{ steps.publish.outputs.publish_version }}' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY 
+          codeql pack publish --registry=https://ghcr.io $PACKAGE_NAME@$PACKAGE_VERSION 
