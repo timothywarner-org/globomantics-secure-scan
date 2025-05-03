@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../globomantics-js-pack"
+		},
+		{
+			"path": "../globomantics-vulnerable-app"
 		}
 	],
 	"settings": {}
