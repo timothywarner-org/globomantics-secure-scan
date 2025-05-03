@@ -36,6 +36,9 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install pack dependencies
+        run: codeql pack install
+
       - name: Package and publish CodeQL pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
