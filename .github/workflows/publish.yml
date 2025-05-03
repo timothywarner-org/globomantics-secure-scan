@@ -18,10 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up CodeQL
+      # Setup the CodeQL CLI properly
+      - name: Setup CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: javascript
+          tools: latest
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -38,7 +40,7 @@ jobs:
           # Create the CodeQL pack path
           PACK_PATH="ghcr.io/${GITHUB_REPOSITORY_OWNER}/globomantics-javascript-security-queries:${VERSION}"
           
-          # Login with GitHub token (use environment variable instead of echo)
+          # Login with GitHub token
           codeql pack login ghcr.io --token="${{ secrets.GITHUB_TOKEN }}"
           
           # Publish the pack
